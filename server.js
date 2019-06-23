@@ -3,8 +3,11 @@ var logger = require("morgan");
 var mongoose = require("mongoose");
 var axios = require("axios");
 var cheerio = require("cheerio");
+
 var db = require("./models");
-var PORT = 8008;
+
+var PORT = 3000;
+
 var app = express();
 
 app.use(logger("dev"));
@@ -12,11 +15,13 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(express.static("public"));
 
-mongoose.connect("mongodb://localhost/mongoHeadlines", { useNewUrlParser: true });
+var MONGODB_URI = process.env.MONGODB_URI || "mongodb://localhost/mongoHeadlines";
+
+mongoose.connect(MONGODB_URI);
 
 app.get("/scrape", function(req, res) {
   
-  axios.get("http://www.news.com/").then(function(response) {
+  axios.get("https://www.cnn.com/articles").then(function(response) {
 
     var $ = cheerio.load(response.data);
 
@@ -37,6 +42,7 @@ app.get("/scrape", function(req, res) {
           console.log(dbArticle);
         })
         .catch(function(err) {
+
           console.log(err);
         });
     });
@@ -46,7 +52,7 @@ app.get("/scrape", function(req, res) {
 });
 
 app.get("/articles", function(req, res) {
-  
+
   db.Article.find({})
     .then(function(dbArticle) {
 
@@ -61,9 +67,10 @@ app.get("/articles", function(req, res) {
 app.get("/articles/:id", function(req, res) {
 
   db.Article.findOne({ _id: req.params.id })
+
     .populate("note")
     .then(function(dbArticle) {
-
+ 
       res.json(dbArticle);
     })
     .catch(function(err) {
@@ -89,7 +96,6 @@ app.post("/articles/:id", function(req, res) {
     });
 });
 
-// Start the server
 app.listen(PORT, function() {
   console.log("App running on port " + PORT + "!");
 });
